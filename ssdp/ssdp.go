@@ -142,14 +142,12 @@ func MakeControlPoint() *controlPoint {
 	return &controlPoint{}
 }
 
-func hello(headers map[string][]string) {
-	// fmt.Println(headers)
-	fmt.Println(headers["Location"])
-}
-
 func TestMe() {
 	cp := MakeControlPoint()
-	cp.callback = hello
+	cp.callback = func(headers map[string][]string) {
+		// fmt.Println(headers)
+		fmt.Println(headers["Location"])
+	}
 
 	for _, iface := range findCompatibleInterfaces() {
 		go cp.listen(&iface)
