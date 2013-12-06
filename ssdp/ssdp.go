@@ -41,6 +41,34 @@ func readData(conn *net.UDPConn, callback func(*bufio.Reader)) {
 	}
 }
 
+func findCompatibleInterfaces() []net.Interface {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		panic(err)
+	}
+
+	out := make([]net.Interface, 0, len(interfaces))
+
+	for _, iface := range interfaces {
+		if (iface.Flags & net.FlagLoopback) != 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			panic(err)
+		}
+
+		if len(addrs) == 0 {
+			continue
+		}
+
+		out = append(out, iface)
+	}
+
+	return out
+}
+
 func (c *controlPoint) search() {
 	addr, err := net.ResolveUDPAddr(BROADCAST_VERSION, "0.0.0.0:0")
 	if err != nil {
@@ -73,19 +101,13 @@ func (c *controlPoint) search() {
 	})
 }
 
-func (c *controlPoint) listen() {
-	// TODO: scan through interfaces to find 'en0'
-	ifi, err := net.InterfaceByName("en0")
-	if err != nil {
-		panic(err)
-	}
-
+func (c *controlPoint) listen(iface *net.Interface) {
 	addr, err := net.ResolveUDPAddr(BROADCAST_VERSION, BROADCAST_ADDR)
 	if err != nil {
 		panic(err)
 	}
 
-	conn, err := net.ListenMulticastUDP(BROADCAST_VERSION, ifi, addr)
+	conn, err := net.ListenMulticastUDP(BROADCAST_VERSION, iface, addr)
 	if err != nil {
 		panic(err)
 	}
@@ -119,12 +141,16 @@ func MakeControlPoint() *controlPoint {
 
 func hello(headers map[string][]string) {
 	// fmt.Println(headers)
-	fmt.Println(headers["Location"][0])
+	fmt.Println(headers["Location"])
 }
 
 func TestMe() {
 	cp := MakeControlPoint()
 	cp.callback = hello
+
+	for _, iface := range findCompatibleInterfaces() {
+		go cp.listen(&iface)
+	}
+
 	cp.search()
-	// cp.listen()
 }
