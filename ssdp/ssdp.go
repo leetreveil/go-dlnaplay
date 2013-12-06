@@ -21,10 +21,13 @@ const (
 
 var (
 	BROADCAST_ADDR = fmt.Sprintf("239.255.255.250:%d", SSDP_PORT)
-	SSDP_MSEARCH   = fmt.Sprintf(
-		"M-SEARCH * HTTP/1.1\r\nHost:%s\r\nST:%s\r\nMan:\"ssdp:discover\"\r\nMX:3\r\n\r\n",
-		BROADCAST_ADDR, "urn:schemas-upnp-org:service:AVTransport:1")
 )
+
+func makeMSearchString(searchType string) string {
+	return fmt.Sprintf(
+		"M-SEARCH * HTTP/1.1\r\nHost:%s\r\nST:%s\r\nMan:\"ssdp:discover\"\r\nMX:3\r\n\r\n",
+		BROADCAST_ADDR, searchType)
+}
 
 type controlPoint struct {
 	callback func(map[string][]string)
@@ -69,7 +72,7 @@ func findCompatibleInterfaces() []net.Interface {
 	return out
 }
 
-func (c *controlPoint) search() {
+func (c *controlPoint) search(searchType string) {
 	addr, err := net.ResolveUDPAddr(BROADCAST_VERSION, "0.0.0.0:0")
 	if err != nil {
 		panic(err)
@@ -86,7 +89,7 @@ func (c *controlPoint) search() {
 		panic(err)
 	}
 
-	_, err = conn.WriteTo([]byte(SSDP_MSEARCH), waddr)
+	_, err = conn.WriteTo([]byte(makeMSearchString(searchType)), waddr)
 	if err != nil {
 		panic(err)
 	}
@@ -152,5 +155,5 @@ func TestMe() {
 		go cp.listen(&iface)
 	}
 
-	cp.search()
+	cp.search("urn:schemas-upnp-org:service:AVTransport:1")
 }
