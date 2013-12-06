@@ -51,6 +51,7 @@ func (c *controlPoint) search() {
 	if err != nil {
 		panic(err)
 	}
+	defer conn.Close()
 
 	waddr, err := net.ResolveUDPAddr(BROADCAST_VERSION, BROADCAST_ADDR)
 	if err != nil {
@@ -88,6 +89,7 @@ func (c *controlPoint) listen() {
 	if err != nil {
 		panic(err)
 	}
+	defer conn.Close()
 
 	p := ipv4.NewPacketConn(conn)
 
