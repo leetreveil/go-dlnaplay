@@ -1,4 +1,4 @@
-package ssdp
+package main
 
 import (
 	"bufio"
@@ -145,8 +145,8 @@ func MakeControlPoint() *controlPoint {
 func TestMe() {
 	cp := MakeControlPoint()
 	cp.callback = func(headers map[string][]string) {
-		// fmt.Println(headers)
-		fmt.Println(headers["Location"])
+		fmt.Println(headers)
+		// fmt.Println(headers["Location"])
 	}
 
 	for _, iface := range findCompatibleInterfaces() {
