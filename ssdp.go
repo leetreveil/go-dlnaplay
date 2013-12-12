@@ -11,6 +11,7 @@ import (
 
 const (
 	BROADCAST_VERSION   = "udp4"
+	SSDP_IP             = "239.255.255.250"
 	SSDP_PORT           = 1900
 	SSDP_ALIVE          = "ssdp:alive"
 	SSDP_BYEBYE         = "ssdp:byebye"
@@ -20,13 +21,13 @@ const (
 )
 
 var (
-	BROADCAST_ADDR = fmt.Sprintf("239.255.255.250:%d", SSDP_PORT)
+	SSDP_ADDR = net.UDPAddr{IP: net.ParseIP(SSDP_IP), Port: SSDP_PORT}
 )
 
 func makeMSearchString(searchType string) string {
 	return fmt.Sprintf(
 		"M-SEARCH * HTTP/1.1\r\nHost:%s\r\nST:%s\r\nMan:\"ssdp:discover\"\r\nMX:3\r\n\r\n",
-		BROADCAST_ADDR, searchType)
+		SSDP_ADDR, searchType)
 }
 
 type controlPoint struct {
@@ -73,23 +74,13 @@ func findCompatibleInterfaces() []net.Interface {
 }
 
 func (c *controlPoint) search(searchType string) {
-	addr, err := net.ResolveUDPAddr(BROADCAST_VERSION, "0.0.0.0:0")
-	if err != nil {
-		panic(err)
-	}
-
-	conn, err := net.ListenUDP(BROADCAST_VERSION, addr)
+	conn, err := net.ListenUDP(BROADCAST_VERSION, &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
 
-	waddr, err := net.ResolveUDPAddr(BROADCAST_VERSION, BROADCAST_ADDR)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = conn.WriteTo([]byte(makeMSearchString(searchType)), waddr)
+	_, err = conn.WriteTo([]byte(makeMSearchString(searchType)), &SSDP_ADDR)
 	if err != nil {
 		panic(err)
 	}
@@ -105,12 +96,7 @@ func (c *controlPoint) search(searchType string) {
 }
 
 func (c *controlPoint) listen(iface *net.Interface) {
-	addr, err := net.ResolveUDPAddr(BROADCAST_VERSION, BROADCAST_ADDR)
-	if err != nil {
-		panic(err)
-	}
-
-	conn, err := net.ListenMulticastUDP(BROADCAST_VERSION, iface, addr)
+	conn, err := net.ListenMulticastUDP(BROADCAST_VERSION, iface, &SSDP_ADDR)
 	if err != nil {
 		panic(err)
 	}
