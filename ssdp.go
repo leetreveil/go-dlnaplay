@@ -27,7 +27,7 @@ var (
 func makeMSearchString(searchType string) string {
 	return fmt.Sprintf(
 		"M-SEARCH * HTTP/1.1\r\nHost:%s\r\nST:%s\r\nMan:\"ssdp:discover\"\r\nMX:3\r\n\r\n",
-		SSDP_ADDR, searchType)
+		SSDP_ADDR.String(), searchType)
 }
 
 type controlPoint struct {
