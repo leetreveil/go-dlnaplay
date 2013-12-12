@@ -39,7 +39,7 @@ func readData(conn *net.UDPConn) <-chan *bufio.Reader {
 	go func() {
 		msg := make([]byte, UDP_MAX_PACKET_SIZE)
 		for {
-			if n, err := conn.Read(msg); nil != err {
+			if n, err := conn.Read(msg); err != nil {
 				panic(err)
 			} else {
 				ch <- bufio.NewReaderSize(bytes.NewBuffer(msg), n)
@@ -85,8 +85,7 @@ func (c *controlPoint) search(searchType string) {
 	}
 	defer conn.Close()
 
-	_, err = conn.WriteTo([]byte(makeMSearchString(searchType)), &SSDP_ADDR)
-	if err != nil {
+	if _, err := conn.WriteTo([]byte(makeMSearchString(searchType)), &SSDP_ADDR); err != nil {
 		panic(err)
 	}
 
@@ -109,13 +108,11 @@ func (c *controlPoint) listen(iface *net.Interface) {
 
 	p := ipv4.NewPacketConn(conn)
 
-	err = p.SetMulticastTTL(4)
-	if err != nil {
+	if err := p.SetMulticastTTL(4); err != nil {
 		panic(err)
 	}
 
-	err = p.SetMulticastLoopback(true)
-	if err != nil {
+	if err := p.SetMulticastLoopback(true); err != nil {
 		panic(err)
 	}
 
