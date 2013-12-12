@@ -34,15 +34,20 @@ type controlPoint struct {
 	callback func(map[string][]string)
 }
 
-func readData(conn *net.UDPConn, callback func(*bufio.Reader)) {
-	msg := make([]byte, UDP_MAX_PACKET_SIZE)
-	for {
-		if n, err := conn.Read(msg); nil != err {
-			panic(err)
-		} else {
-			callback(bufio.NewReaderSize(bytes.NewBuffer(msg), n))
+func readData(conn *net.UDPConn) <-chan *bufio.Reader {
+	ch := make(chan *bufio.Reader)
+	go func() {
+		msg := make([]byte, UDP_MAX_PACKET_SIZE)
+		for {
+			if n, err := conn.Read(msg); nil != err {
+				panic(err)
+			} else {
+				ch <- bufio.NewReaderSize(bytes.NewBuffer(msg), n)
+			}
 		}
-	}
+		close(ch)
+	}()
+	return ch
 }
 
 func findCompatibleInterfaces() []net.Interface {
@@ -85,14 +90,14 @@ func (c *controlPoint) search(searchType string) {
 		panic(err)
 	}
 
-	readData(conn, func(rdr *bufio.Reader) {
+	for rdr := range readData(conn) {
 		res, err := http.ReadResponse(rdr, nil)
 		// TODO: malformed request - do we really want to kill the program??
 		if err != nil {
 			panic(err)
 		}
 		c.callback(res.Header)
-	})
+	}
 }
 
 func (c *controlPoint) listen(iface *net.Interface) {
@@ -114,14 +119,14 @@ func (c *controlPoint) listen(iface *net.Interface) {
 		panic(err)
 	}
 
-	readData(conn, func(rdr *bufio.Reader) {
+	for rdr := range readData(conn) {
 		req, err := http.ReadRequest(rdr)
 		// TODO: malformed request - do we really want to kill the program??
 		if err != nil {
 			panic(err)
 		}
 		c.callback(req.Header)
-	})
+	}
 }
 
 func MakeControlPoint() *controlPoint {
